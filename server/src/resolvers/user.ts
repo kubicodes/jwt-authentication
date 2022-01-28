@@ -1,12 +1,35 @@
-import { hash } from "bcryptjs";
-import { Arg, Mutation, Query, Resolver } from "type-graphql";
+import { compare, hash } from "bcryptjs";
+import {
+  Arg,
+  Ctx,
+  Field,
+  Mutation,
+  ObjectType,
+  Query,
+  Resolver,
+  UseMiddleware,
+} from "type-graphql";
 import { User } from "../entity/User";
+import { isAuth } from "../middleware/isAuth";
+import MyContext from "../types/MyContext";
+import { createAccessToken, createRefreshToken } from "../utils/auth";
 
+@ObjectType()
+class LoginResponse {
+  @Field()
+  accessToken: string;
+}
 @Resolver()
 export default class UserResolver {
   @Query(() => [User])
   users() {
     return User.find();
+  }
+
+  @Query(() => String)
+  @UseMiddleware(isAuth)
+  auth(@Ctx() { payload }: MyContext) {
+    return `you are authenticated with user Id ${payload?.userId}`;
   }
 
   @Mutation(() => Boolean)
@@ -28,5 +51,35 @@ export default class UserResolver {
 
       return false;
     }
+  }
+
+  @Mutation(() => LoginResponse)
+  async login(
+    @Arg("email", () => String) email: string,
+    @Arg("password", () => String) password: string,
+    @Ctx() { res }: MyContext
+  ): Promise<LoginResponse> {
+    const matchedUser = await User.findOne({ where: { email } });
+
+    if (!matchedUser) {
+      throw new Error("user does not exist");
+    }
+
+    const isValidPassword = await compare(password, matchedUser.password);
+
+    if (!isValidPassword) {
+      throw new Error("wrong password");
+    }
+
+    //successfully logged in
+    res.cookie("jid", createRefreshToken(matchedUser), {
+      httpOnly: true,
+      sameSite: "none", //for graphql studio
+      secure: true,
+    });
+
+    return {
+      accessToken: createAccessToken(matchedUser),
+    };
   }
 }
