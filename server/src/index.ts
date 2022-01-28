@@ -21,7 +21,7 @@ import { sendRefreshToken } from "./utils/sendRefreshToken";
 
   app.use(
     cors({
-      origin: "https://studio.apollographql.com",
+      origin: ["https://studio.apollographql.com" , "http://localhost:3000"],
       credentials: true,
     })
   );
