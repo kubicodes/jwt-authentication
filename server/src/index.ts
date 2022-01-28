@@ -9,7 +9,8 @@ import "dotenv-safe/config";
 import cookieParser from "cookie-parser";
 import { verify } from "jsonwebtoken";
 import { User } from "./entity/User";
-import { createAccessToken } from "./utils/auth";
+import { createAccessToken, createRefreshToken } from "./utils/auth";
+import { sendRefreshToken } from "./utils/sendRefreshToken";
 
 (async () => {
   const app = express();
@@ -45,6 +46,9 @@ import { createAccessToken } from "./utils/auth";
     if (!user) {
       res.send({ ok: false, accessToken: "" });
     }
+
+    //create also new refresh token when access token is new
+    sendRefreshToken(res, createRefreshToken(user));
 
     res.send({ ok: true, accesToken: createAccessToken(user) });
   });

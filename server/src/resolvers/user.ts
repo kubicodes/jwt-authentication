@@ -13,6 +13,7 @@ import { User } from "../entity/User";
 import { isAuth } from "../middleware/isAuth";
 import MyContext from "../types/MyContext";
 import { createAccessToken, createRefreshToken } from "../utils/auth";
+import { sendRefreshToken } from "../utils/sendRefreshToken";
 
 @ObjectType()
 class LoginResponse {
@@ -72,11 +73,7 @@ export default class UserResolver {
     }
 
     //successfully logged in
-    res.cookie("jid", createRefreshToken(matchedUser), {
-      httpOnly: true,
-      sameSite: "none", //for graphql studio
-      secure: true,
-    });
+    sendRefreshToken(res, createRefreshToken(matchedUser));
 
     return {
       accessToken: createAccessToken(matchedUser),
